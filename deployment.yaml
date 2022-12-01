@@ -15,7 +15,7 @@ spec:
    spec:
      containers:
      - name: demo-app
-       image: vedavignesh/test:9
+       image: vedavignesh/test:10
        imagePullPolicy: Always
        ports:
        - containerPort: 5000
