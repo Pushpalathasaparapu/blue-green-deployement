@@ -1,38 +1,63 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
-  creationTimestamp: null
-  labels:
-    app: flaskdemo
-  name: flaskdemo
+ name: rollout-istio
 spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: flaskdemo
-  strategy: {}
-  template:
-    metadata:
-      creationTimestamp: null
-      labels:
-        app: flaskdemo
-    spec:
-      containers:
-      - image: vedavignesh/test:7
-        name: flaskdemo
-        resources: {}
-status: {}
+ replicas: 3
+ revisionHistoryLimit: 3
+ selector:
+   matchLabels:
+     app: rollout-istio
+ template:
+   metadata:
+     labels:
+       app: rollout-istio
+   spec:
+     containers:
+     - name: demo-app
+       image: vedavignesh/test:7
+       imagePullPolicy: Always
+       ports:
+       - containerPort: 5000
+ strategy:
+   canary:
+     canaryService: demo-2-canary  # required
+     stableService: demo-1-stable  # required
+     trafficRouting:
+       istio:
+         virtualService:
+           name: rollout-vsvc   # required
+           routes:
+           - primary            # optional if there is a single route in VirtualService, required otherwise
+     steps:
+     - setWeight: 50 # overrides the weight provided in virtualservice
+     - pause:
+         duration: 10m
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: lb-service
-  labels:
-    app: lb-service
+ name: demo-1-stable
 spec:
-  type: LoadBalancer
-  ports:
-  - port: 80
-    targetPort: 5000
-  selector:
-    app: flaskdemo
+ selector:
+   app: rollout-istio
+ ports:
+   - protocol: "TCP"
+     port: 80
+     targetPort: 5000
+ type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: demo-2-canary
+spec:
+ selector:
+   app: rollout-istio
+ ports:
+   - protocol: "TCP"
+     port: 80
+     targetPort: 5000
+ type: ClusterIP
