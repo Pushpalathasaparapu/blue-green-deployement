@@ -1,3 +1,8 @@
+body {
+  background-color: darkgreen;
+}
+
+
 h1 {
     border: 2px #eee solid;
     color: brown;
